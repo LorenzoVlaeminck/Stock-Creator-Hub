@@ -1,5 +1,12 @@
 import React, { useState, useRef } from 'react';
-import { UploadCloud, X, CheckCircle2, Image as ImageIcon } from 'lucide-react';
+import { UploadCloud, X, CheckCircle2, Image as ImageIcon, Clock, ExternalLink, Film } from 'lucide-react';
+
+const RECENT_UPLOADS = [
+  { id: 1, name: 'urban-sunset-01.jpg', date: '2 hours ago', platforms: ['Shutterstock', 'Getty Images'], img: 'https://picsum.photos/seed/urban1/200/200' },
+  { id: 2, name: 'coffee-shop-broll.mp4', date: '5 hours ago', platforms: ['Adobe Stock'], img: 'https://picsum.photos/seed/coffee/200/200' },
+  { id: 3, name: 'mountain-landscape-raw.dng', date: '1 day ago', platforms: ['Shutterstock', 'Getty Images', 'Unsplash'], img: 'https://picsum.photos/seed/mountain/200/200' },
+  { id: 4, name: 'portrait-studio-05.jpg', date: '2 days ago', platforms: ['Adobe Stock', 'Getty Images'], img: 'https://picsum.photos/seed/portrait/200/200' },
+];
 
 export function UploadHub({ platforms }: { platforms: any[] }) {
   const [files, setFiles] = useState<any[]>([]);
@@ -35,11 +42,12 @@ export function UploadHub({ platforms }: { platforms: any[] }) {
   };
 
   const addFiles = (newFiles: File[]) => {
-    const imageFiles = newFiles.filter(file => file.type.startsWith('image/'));
-    setFiles(prev => [...prev, ...imageFiles.map(f => ({
+    const mediaFiles = newFiles.filter(file => file.type.startsWith('image/') || file.type.startsWith('video/'));
+    setFiles(prev => [...prev, ...mediaFiles.map(f => ({
       file: f,
       id: Math.random().toString(36).substring(7),
-      preview: URL.createObjectURL(f)
+      preview: URL.createObjectURL(f),
+      type: f.type.startsWith('video/') ? 'video' : 'image'
     }))]);
     setUploadComplete(false);
   };
@@ -75,7 +83,7 @@ export function UploadHub({ platforms }: { platforms: any[] }) {
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8">
+    <div className="max-w-6xl mx-auto space-y-8">
       <div>
         <h2 className="text-3xl font-bold tracking-tight text-white">Upload Hub</h2>
         <p className="text-zinc-400 mt-1">Upload your stock assets to all connected platforms simultaneously.</p>
@@ -100,7 +108,7 @@ export function UploadHub({ platforms }: { platforms: any[] }) {
             <input 
               type="file" 
               multiple 
-              accept="image/*" 
+              accept="image/*,video/*" 
               className="hidden" 
               ref={fileInputRef}
               onChange={handleFileInput}
@@ -109,7 +117,7 @@ export function UploadHub({ platforms }: { platforms: any[] }) {
               <UploadCloud className="w-8 h-8" />
             </div>
             <h3 className="text-lg font-medium text-white mb-1 relative z-10">Click or drag files to upload</h3>
-            <p className="text-zinc-500 text-sm relative z-10">Supports JPG, PNG, RAW up to 50MB</p>
+            <p className="text-zinc-500 text-sm relative z-10">Supports JPG, PNG, RAW, MP4, MOV up to 500MB</p>
           </div>
 
           {/* File List */}
@@ -127,7 +135,28 @@ export function UploadHub({ platforms }: { platforms: any[] }) {
               <div className="p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 max-h-96 overflow-y-auto">
                 {files.map(fileObj => (
                   <div key={fileObj.id} className="relative group rounded-xl overflow-hidden border border-white/10 aspect-square bg-black/50">
-                    <img src={fileObj.preview} alt="preview" className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" />
+                    {fileObj.type === 'video' ? (
+                      <div className="w-full h-full relative">
+                        <video 
+                          src={fileObj.preview} 
+                          className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity"
+                          muted 
+                          loop 
+                          playsInline
+                          onMouseEnter={(e) => e.currentTarget.play()}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.pause();
+                            e.currentTarget.currentTime = 0;
+                          }}
+                        />
+                        <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-md px-2 py-1 rounded text-[10px] font-medium text-white flex items-center gap-1">
+                          <Film className="w-3 h-3" /> Video
+                        </div>
+                      </div>
+                    ) : (
+                      <img src={fileObj.preview} alt="preview" className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" />
+                    )}
+                    
                     {!uploading && !uploadComplete && (
                       <button 
                         onClick={(e) => { e.stopPropagation(); removeFile(fileObj.id); }}
@@ -148,10 +177,47 @@ export function UploadHub({ platforms }: { platforms: any[] }) {
               </div>
             </div>
           )}
+
+          {/* Recent Uploads */}
+          <div className="bg-zinc-900/50 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
+            <div className="px-6 py-5 border-b border-white/10 flex items-center justify-between">
+              <h3 className="text-lg font-medium text-white flex items-center gap-2">
+                <Clock className="w-5 h-5 text-zinc-400" />
+                Recent Uploads
+              </h3>
+              <button className="text-sm text-violet-400 hover:text-violet-300 transition-colors font-medium">
+                View All
+              </button>
+            </div>
+            <div className="divide-y divide-white/5">
+              {RECENT_UPLOADS.map((upload) => (
+                <div key={upload.id} className="p-4 flex items-center gap-4 hover:bg-white/[0.02] transition-colors group">
+                  <img src={upload.img} alt={upload.name} className="w-12 h-12 rounded-lg object-cover border border-white/10" referrerPolicy="no-referrer" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-zinc-100 truncate">{upload.name}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-xs text-zinc-500">{upload.date}</span>
+                      <span className="text-zinc-700">•</span>
+                      <div className="flex gap-1">
+                        {upload.platforms.map((p, i) => (
+                          <span key={i} className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-zinc-400 border border-white/5">
+                            {p}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <button className="p-2 text-zinc-500 hover:text-white opacity-0 group-hover:opacity-100 transition-all">
+                    <ExternalLink className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
 
         <div className="space-y-6">
-          <div className="bg-zinc-900/50 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl p-6">
+          <div className="bg-zinc-900/50 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl p-6 sticky top-8">
             <h3 className="font-medium text-white mb-4">Target Platforms</h3>
             
             {connectedPlatforms.length === 0 ? (
